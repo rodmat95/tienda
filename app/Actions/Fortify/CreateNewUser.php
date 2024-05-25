@@ -2,6 +2,8 @@
 
 namespace App\Actions\Fortify;
 
+use App\Models\Customer;
+use App\Models\ShoppingCart;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
@@ -26,10 +28,51 @@ class CreateNewUser implements CreatesNewUsers
             'terms' => Jetstream::hasTermsAndPrivacyPolicyFeature() ? ['accepted', 'required'] : '',
         ])->validate();
 
-        return User::create([
+        $user = User::create([
             'name' => $input['name'],
             'email' => $input['email'],
             'password' => Hash::make($input['password']),
         ]);
+
+        $this->createCustomer($user);
+
+        return $user;
     }
+
+    public function createCustomer(User $user): void
+    {
+        $customer = Customer::create([
+            'user_id' => $user->id
+        ]);
+        
+        //$this->updateShoppingCart($customer);
+        $this->createShoppingCart($customer);
+    }
+
+    public function createShoppingCart(Customer $customer): void
+    {
+        ShoppingCart::create([
+            'customer_id' => $customer->id
+        ]);
+    }
+
+    /* public function updateShoppingCart(Customer $customer): void
+    {
+        $sessionID = session()->getId();
+        $cart = ShoppingCart::where('session_id', $sessionID)->first();
+
+        $newSession = session()->get('user_id');
+        dd([
+            $customer->id,
+            $newSession,
+        ]);
+        $sameSession = $newSession->where('user_id', $customer->id)->first();
+
+        if ($cart) {
+            $cart->update([
+                'session_id' => $sameSession,
+                'customer_id' => $customer->id
+            ]);
+        }
+    } */
 }
